@@ -49,7 +49,7 @@ Cells are stored row by row: the cell at row `r`, column `c` (both 0-based) is a
 | Medium | 45 |
 | Hard | 52 |
 
-Cells are removed at random. A puzzle is **not yet guaranteed to have a unique solution**.
+Cells are removed one at a time in random order. A removal is kept only if the puzzle still has exactly one solution, so every generated puzzle is uniquely solvable. If a grid cannot be emptied enough, a new one is generated.
 
 ```csharp
 var service = new TableService();
@@ -61,6 +61,5 @@ int answer = game.Solution[4 * 9 + 2]; // the correct value for that cell
 
 ## Roadmap
 
-- [ ] Guarantee a unique solution for generated puzzles
 - [ ] Build the game board in `Sudoku.MAUI`
 - [ ] Clean up unused types in `MainTable.cs`

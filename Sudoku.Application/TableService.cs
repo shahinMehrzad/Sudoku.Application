@@ -6,17 +6,81 @@ public class TableService
 
 	public MainTable StartGame(MatchLevelEnum level)
 	{
-		var cells = new int[81];
-		Solve(cells, 0);
+		int target = EmptyCells(level);
 
-		var table = new MainTable();
-		table.Solution.AddRange(cells);
+		while (true)
+		{
+			var solution = new int[81];
+			Solve(solution, 0);
 
-		foreach (var index in RandomIndexes().Take(EmptyCells(level)))
-			cells[index] = 0;
-		table.Table.AddRange(cells);
+			var cells = (int[])solution.Clone();
+			int removed = 0;
 
-		return table;
+			// Remove cells one by one, keeping a removal only if the puzzle still has a single solution.
+			foreach (var index in RandomIndexes())
+			{
+				if (removed == target)
+					break;
+
+				int digit = cells[index];
+				cells[index] = 0;
+
+				if (CountSolutions(cells, 2) == 1)
+					removed++;
+				else
+					cells[index] = digit;
+			}
+
+			// This grid could not be emptied enough; try again with a new one.
+			if (removed < target)
+				continue;
+
+			var table = new MainTable();
+			table.Solution.AddRange(solution);
+			table.Table.AddRange(cells);
+			return table;
+		}
+	}
+
+	// Counts solutions of the puzzle, stopping early once `limit` is reached.
+	private static int CountSolutions(int[] cells, int limit)
+	{
+		int bestIndex = -1;
+		int bestCount = 10;
+
+		// Pick the empty cell with the fewest candidates to keep the search small.
+		for (int i = 0; i < 81; i++)
+		{
+			if (cells[i] != 0)
+				continue;
+
+			int count = 0;
+			for (int digit = 1; digit <= 9; digit++)
+				if (IsAllowed(cells, i, digit))
+					count++;
+
+			if (count < bestCount)
+			{
+				bestCount = count;
+				bestIndex = i;
+			}
+		}
+
+		if (bestIndex == -1)
+			return 1;
+
+		int solutions = 0;
+		for (int digit = 1; digit <= 9 && solutions < limit; digit++)
+		{
+			if (!IsAllowed(cells, bestIndex, digit))
+				continue;
+
+			cells[bestIndex] = digit;
+			solutions += CountSolutions(cells, limit - solutions);
+		}
+
+		cells[bestIndex] = 0;
+		return solutions;
 	}
 
 	private static int EmptyCells(MatchLevelEnum level) => level switch

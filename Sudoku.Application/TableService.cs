@@ -10,8 +10,28 @@ public class TableService
 		Solve(cells, 0);
 
 		var table = new MainTable();
+		table.Solution.AddRange(cells);
+
+		foreach (var index in RandomIndexes().Take(EmptyCells(level)))
+			cells[index] = 0;
 		table.Table.AddRange(cells);
+
 		return table;
+	}
+
+	private static int EmptyCells(MatchLevelEnum level) => level switch
+	{
+		MatchLevelEnum.Easy => 36,
+		MatchLevelEnum.Medium => 45,
+		MatchLevelEnum.Hard => 52,
+		_ => throw new ArgumentOutOfRangeException(nameof(level)),
+	};
+
+	private IEnumerable<int> RandomIndexes()
+	{
+		int[] indexes = Enumerable.Range(0, 81).ToArray();
+		rnd.Shuffle(indexes);
+		return indexes;
 	}
 
 	// Backtracking: fills cells[index..80] with random valid digits.

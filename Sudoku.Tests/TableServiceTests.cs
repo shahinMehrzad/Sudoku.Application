@@ -132,4 +132,36 @@ public class TableServiceTests
 
 	private static void AssertComplete(IEnumerable<int> unit) =>
 		Assert.Equal(Enumerable.Range(1, 9), unit.OrderBy(x => x));
+
+	[Theory]
+	[InlineData(MatchLevelEnum.Easy)]
+	[InlineData(MatchLevelEnum.Medium)]
+	[InlineData(MatchLevelEnum.Hard)]
+	public void StartGame_WithTheSameSeed_ProducesTheSamePuzzle(MatchLevelEnum level)
+	{
+		var first = new TableService(42).StartGame(level);
+		var second = new TableService(42).StartGame(level);
+
+		Assert.Equal(first.Table, second.Table);
+		Assert.Equal(first.Solution, second.Solution);
+	}
+
+	[Fact]
+	public void StartGame_WithTheSameSeed_ProducesTheSameSequenceOfPuzzles()
+	{
+		var first = new TableService(7);
+		var second = new TableService(7);
+
+		for (int i = 0; i < 3; i++)
+			Assert.Equal(first.StartGame(MatchLevelEnum.Medium).Table, second.StartGame(MatchLevelEnum.Medium).Table);
+	}
+
+	[Fact]
+	public void StartGame_WithDifferentSeeds_ProducesDifferentPuzzles()
+	{
+		var first = new TableService(1).StartGame(MatchLevelEnum.Medium);
+		var second = new TableService(2).StartGame(MatchLevelEnum.Medium);
+
+		Assert.NotEqual(first.Solution, second.Solution);
+	}
 }

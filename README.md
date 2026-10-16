@@ -59,7 +59,16 @@ int value = game.Table[4 * 9 + 2];     // row 4, column 2 (0 = empty)
 int answer = game.Solution[4 * 9 + 2]; // the correct value for that cell
 ```
 
+### Reproducible puzzles
+
+`new TableService(seed)` generates the same puzzles for the same seed (useful for tests or a "puzzle of the day"). The parameterless constructor picks a random seed. Reproducibility is only guaranteed within the same .NET version.
+
+```csharp
+var a = new TableService(42).StartGame(MatchLevelEnum.Hard);
+var b = new TableService(42).StartGame(MatchLevelEnum.Hard);
+// a.Table equals b.Table
+```
+
 ## Roadmap
 
 - [ ] Build the game board in `Sudoku.MAUI`
-- [ ] Clean up unused types in `MainTable.cs`

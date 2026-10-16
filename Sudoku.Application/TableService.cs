@@ -2,7 +2,22 @@
 
 public class TableService
 {
-	private readonly Random rnd = new Random();
+	private readonly Random rnd;
+
+	/// <summary>Creates a service that generates different puzzles every time.</summary>
+	public TableService()
+	{
+		rnd = new Random();
+	}
+
+	/// <summary>
+	/// Creates a service whose puzzles are reproducible: two services created with the same seed
+	/// produce the same puzzles, in the same order, for the same levels.
+	/// </summary>
+	public TableService(int seed)
+	{
+		rnd = new Random(seed);
+	}
 
 	public MainTable StartGame(MatchLevelEnum level)
 	{

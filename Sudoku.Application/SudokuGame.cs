@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Text.Json;
 
 namespace Sudoku.Application;
 
@@ -13,10 +14,15 @@ public class SudokuGame
     private readonly Dictionary<int, List<int>> _notes = new Dictionary<int, List<int>>();
 
     public SudokuGame(MainTable table)
+        : this(table.Table.ToArray(), table.Table.Select(v => v != 0).ToArray(), table.Solution.ToArray())
     {
-        _values = table.Table.ToArray();
-        _fixedCells = _values.Select(v => v != 0).ToArray();
-        _solution = table.Solution.ToImmutableArray();
+    }
+
+    private SudokuGame(int[] values, bool[] fixedCells, int[] solution)
+    {
+        _values = values;
+        _fixedCells = fixedCells;
+        _solution = solution.ToImmutableArray();
     }
 
     /// <summary>Current digit of every cell (0 = empty), row by row.</summary>
@@ -208,6 +214,96 @@ public class SudokuGame
             _notes.Remove(index);
         else
             _notes[index] = state.Notes.ToList();
+    }
+
+    /// <summary>Copies the current state so the game can be saved. The undo/redo history is not included.</summary>
+    public GameSnapshot ToSnapshot() => new GameSnapshot
+    {
+        Values = _values.ToArray(),
+        FixedCells = _fixedCells.ToArray(),
+        Solution = _solution.ToArray(),
+        Notes = _notes
+            .Where(n => n.Value.Count > 0)
+            .ToDictionary(n => n.Key, n => n.Value.Order().ToArray()),
+    };
+
+    /// <summary>Rebuilds a game from a snapshot, with an empty undo/redo history.</summary>
+    /// <exception cref="InvalidDataException">The snapshot is not a valid game.</exception>
+    public static SudokuGame FromSnapshot(GameSnapshot snapshot)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        ValidateSnapshot(snapshot);
+
+        var game = new SudokuGame(snapshot.Values.ToArray(), snapshot.FixedCells.ToArray(), snapshot.Solution);
+        foreach (var (index, digits) in snapshot.Notes)
+            game._notes[index] = digits.ToList();
+        return game;
+    }
+
+    public string ToJson() => JsonSerializer.Serialize(ToSnapshot());
+
+    /// <exception cref="InvalidDataException">The text is not a valid saved game.</exception>
+    public static SudokuGame FromJson(string json)
+    {
+        GameSnapshot? snapshot;
+        try
+        {
+            snapshot = JsonSerializer.Deserialize<GameSnapshot>(json);
+        }
+        catch (JsonException ex)
+        {
+            throw new InvalidDataException("The saved game is not valid JSON.", ex);
+        }
+
+        if (snapshot == null)
+            throw new InvalidDataException("The saved game is empty.");
+
+        return FromSnapshot(snapshot);
+    }
+
+    private static void ValidateSnapshot(GameSnapshot s)
+    {
+        if (s.Version != GameSnapshot.CurrentVersion)
+            throw new InvalidDataException($"Unsupported saved game version {s.Version}.");
+        if (s.Values == null || s.FixedCells == null || s.Solution == null || s.Notes == null)
+            throw new InvalidDataException("The saved game is missing data.");
+        if (s.Values.Length != 81 || s.FixedCells.Length != 81 || s.Solution.Length != 81)
+            throw new InvalidDataException("The saved game must have 81 cells.");
+        if (s.Values.Any(v => v < 0 || v > 9))
+            throw new InvalidDataException("Cell values must be between 0 and 9.");
+        if (!IsCompleteGrid(s.Solution))
+            throw new InvalidDataException("The saved solution is not a valid Sudoku grid.");
+
+        for (int i = 0; i < 81; i++)
+        {
+            if (s.FixedCells[i] && s.Values[i] != s.Solution[i])
+                throw new InvalidDataException($"Fixed cell {i} does not match the solution.");
+        }
+
+        foreach (var (index, digits) in s.Notes)
+        {
+            if (index < 0 || index > 80 || s.FixedCells[index] || s.Values[index] != 0)
+                throw new InvalidDataException($"Cell {index} cannot have notes.");
+            if (digits == null || digits.Any(d => d < 1 || d > 9) || digits.Distinct().Count() != digits.Length)
+                throw new InvalidDataException($"Cell {index} has invalid notes.");
+        }
+    }
+
+    // True if every row, column and box holds each of 1..9 exactly once.
+    private static bool IsCompleteGrid(int[] cells)
+    {
+        for (int unit = 0; unit < 9; unit++)
+        {
+            var row = Enumerable.Range(0, 9).Select(i => cells[unit * 9 + i]);
+            var column = Enumerable.Range(0, 9).Select(i => cells[i * 9 + unit]);
+            var box = Enumerable.Range(0, 9).Select(i => cells[(unit / 3 * 3 + i / 3) * 9 + unit % 3 * 3 + i % 3]);
+
+            foreach (var cellsOfUnit in new[] { row, column, box })
+                if (!cellsOfUnit.Order().SequenceEqual(Enumerable.Range(1, 9)))
+                    return false;
+        }
+
+        return true;
     }
 
     private record CellState(int Value, int[] Notes);

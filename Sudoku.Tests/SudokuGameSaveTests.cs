@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using Sudoku.Application;
 
 namespace Sudoku.Tests;
@@ -199,4 +200,33 @@ public class SudokuGameSaveTests
     [InlineData("{}")]
     public void FromJson_RejectsTextThatIsNotAValidSavedGame(string json) =>
         Assert.Throws<InvalidDataException>(() => SudokuGame.FromJson(json));
+
+    [Fact]
+    public void Snapshot_KeepsTheNumberOfChecks()
+    {
+        var (game, _, _) = PlayedGame();
+        game.Validate();
+        game.Validate();
+
+        var restored = SudokuGame.FromJson(game.ToJson());
+
+        Assert.Equal(2, restored.ChecksUsed);
+    }
+
+    [Fact]
+    public void FromJson_LoadsASaveMadeWithoutTheCheckCounter()
+    {
+        var (game, _, _) = PlayedGame();
+        var json = JsonNode.Parse(game.ToJson())!.AsObject();
+        json.Remove("ChecksUsed");
+
+        var restored = SudokuGame.FromJson(json.ToJsonString());
+
+        Assert.Equal(0, restored.ChecksUsed);
+        AssertSameState(game, restored);
+    }
+
+    [Fact]
+    public void FromSnapshot_RejectsANegativeNumberOfChecks() =>
+        AssertRejected(s => s.ChecksUsed = -1);
 }

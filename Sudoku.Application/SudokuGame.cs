@@ -108,6 +108,22 @@ public class SudokuGame
         return false;
     }
 
+    /// <summary>How many times <see cref="Validate"/> has been called. Undo does not reduce it.</summary>
+    public int ChecksUsed { get; private set; }
+
+    /// <summary>
+    /// Checks the digits the player has entered against the solution and returns the indexes of the wrong ones,
+    /// in ascending order. Empty and fixed cells are never wrong. Every call counts as one check.
+    /// </summary>
+    public IReadOnlyList<int> Validate()
+    {
+        ChecksUsed++;
+
+        return Enumerable.Range(0, 81)
+            .Where(i => !_fixedCells[i] && _values[i] != 0 && _values[i] != _solution[i])
+            .ToList();
+    }
+
     public bool IsSolved()
     {
         for (int i = 0; i < 81; i++)
@@ -219,6 +235,7 @@ public class SudokuGame
     /// <summary>Copies the current state so the game can be saved. The undo/redo history is not included.</summary>
     public GameSnapshot ToSnapshot() => new GameSnapshot
     {
+        ChecksUsed = ChecksUsed,
         Values = _values.ToArray(),
         FixedCells = _fixedCells.ToArray(),
         Solution = _solution.ToArray(),
@@ -235,6 +252,7 @@ public class SudokuGame
         ValidateSnapshot(snapshot);
 
         var game = new SudokuGame(snapshot.Values.ToArray(), snapshot.FixedCells.ToArray(), snapshot.Solution);
+        game.ChecksUsed = snapshot.ChecksUsed;
         foreach (var (index, digits) in snapshot.Notes)
             game._notes[index] = digits.ToList();
         return game;
@@ -269,6 +287,8 @@ public class SudokuGame
             throw new InvalidDataException("The saved game is missing data.");
         if (s.Values.Length != 81 || s.FixedCells.Length != 81 || s.Solution.Length != 81)
             throw new InvalidDataException("The saved game must have 81 cells.");
+        if (s.ChecksUsed < 0)
+            throw new InvalidDataException("The number of checks cannot be negative.");
         if (s.Values.Any(v => v < 0 || v > 9))
             throw new InvalidDataException("Cell values must be between 0 and 9.");
         if (!IsCompleteGrid(s.Solution))

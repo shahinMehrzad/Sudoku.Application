@@ -618,4 +618,125 @@ public class SudokuGameTests
         game.Undo();
         Assert.False(game.CanUndo);
     }
+
+    private static int WrongDigitFor(MainTable table, int index) => table.Solution[index] % 9 + 1;
+
+    [Fact]
+    public void Validate_ReturnsNothingForANewGame()
+    {
+        var (game, _) = NewGame();
+
+        Assert.Empty(game.Validate());
+    }
+
+    [Fact]
+    public void Validate_DoesNotFlagCorrectDigits()
+    {
+        var (game, table) = NewGame();
+        int index = FirstIndex(game, isFixed: false);
+        game.PlaceDigit(index, table.Solution[index]);
+
+        Assert.Empty(game.Validate());
+    }
+
+    [Fact]
+    public void Validate_ReturnsTheCellsWithWrongDigitsInAscendingOrder()
+    {
+        var (game, table) = NewGame();
+        var empty = Enumerable.Range(0, 81).Where(i => !game.IsFixed(i)).ToList();
+        int first = empty[0], second = empty[5], correct = empty[3];
+
+        game.PlaceDigit(second, WrongDigitFor(table, second));
+        game.PlaceDigit(correct, table.Solution[correct]);
+        game.PlaceDigit(first, WrongDigitFor(table, first));
+
+        Assert.Equal(new[] { first, second }, game.Validate());
+    }
+
+    [Fact]
+    public void Validate_NeverFlagsEmptyOrFixedCells()
+    {
+        var (game, table) = NewGame();
+        game.PlaceDigit(FirstIndex(game, isFixed: false), WrongDigitFor(table, FirstIndex(game, isFixed: false)));
+
+        var mistakes = game.Validate();
+
+        Assert.All(mistakes, i => Assert.False(game.IsFixed(i)));
+        Assert.All(mistakes, i => Assert.NotEqual(0, game.Values[i]));
+    }
+
+    [Fact]
+    public void Validate_NoLongerFlagsACellOnceItIsCorrected()
+    {
+        var (game, table) = NewGame();
+        int index = FirstIndex(game, isFixed: false);
+        game.PlaceDigit(index, WrongDigitFor(table, index));
+        Assert.Single(game.Validate());
+
+        game.PlaceDigit(index, table.Solution[index]);
+
+        Assert.Empty(game.Validate());
+    }
+
+    [Fact]
+    public void Validate_FlagsAWrongDigitEvenWhenNothingConflicts()
+    {
+        var (game, table) = NewGame();
+        // any empty cell and digit that breaks no row/column/box rule yet is not the solution
+        var (index, digit) = Enumerable.Range(0, 81)
+            .Where(i => !game.IsFixed(i))
+            .SelectMany(i => Enumerable.Range(1, 9).Select(d => (Index: i, Digit: d)))
+            .First(c => c.Digit != table.Solution[c.Index] && !Conflicts(game, c.Index, c.Digit));
+        game.PlaceDigit(index, digit);
+
+        Assert.False(game.HasConflict(index));
+        Assert.Equal(new[] { index }, game.Validate());
+    }
+
+    private static bool Conflicts(SudokuGame game, int index, int digit)
+    {
+        game.PlaceDigit(index, digit);
+        bool conflict = game.HasConflict(index);
+        game.ClearCell(index);
+        return conflict;
+    }
+
+    [Fact]
+    public void ChecksUsed_StartsAtZeroAndCountsEveryValidate()
+    {
+        var (game, _) = NewGame();
+        Assert.Equal(0, game.ChecksUsed);
+
+        game.Validate(); // nothing wrong, still counts
+        game.Validate();
+
+        Assert.Equal(2, game.ChecksUsed);
+    }
+
+    [Fact]
+    public void ChecksUsed_IsNotReducedByUndo()
+    {
+        var (game, _) = NewGame();
+        game.PlaceDigit(FirstIndex(game, isFixed: false), 1);
+        game.Validate();
+
+        game.Undo();
+
+        Assert.Equal(1, game.ChecksUsed);
+    }
+
+    [Fact]
+    public void Validate_DoesNotChangeTheBoardOrTheHistory()
+    {
+        var (game, table) = NewGame();
+        int index = FirstIndex(game, isFixed: false);
+        game.PlaceDigit(index, WrongDigitFor(table, index));
+        var before = game.Values.ToList();
+
+        game.Validate();
+
+        Assert.Equal(before, game.Values);
+        game.Undo();
+        Assert.False(game.CanUndo); // Validate added nothing to the history
+    }
 }

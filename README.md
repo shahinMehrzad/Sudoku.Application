@@ -2,13 +2,13 @@
 
 A Sudoku game built with .NET 10. The game logic lives in a UI-independent class library, so it can be reused by a console app today and by a .NET MAUI app on desktop and mobile.
 
-> **Status:** early development. The puzzle generator works; the MAUI user interface is still the default project template.
+> **Status:** early development. The game logic (generation, play, notes, undo/redo, save/load, check, hints) is complete and tested; the MAUI user interface is still the default project template.
 
 ## Solution layout
 
 | Project | Description |
 |---|---|
-| `Sudoku.Application` | Core library: puzzle generation and difficulty levels. |
+| `Sudoku.Application` | Core library: puzzle generation, difficulty levels, and the state of a game in progress. |
 | `Sudoku.Console` | Minimal console app that generates and prints a puzzle. |
 | `Sudoku.MAUI` | .NET MAUI app (Android, iOS, Mac Catalyst, Windows). UI not implemented yet. |
 | `Sudoku.Tests` | xUnit tests for the core library. |
@@ -69,6 +69,49 @@ var b = new TableService(42).StartGame(MatchLevelEnum.Hard);
 // a.Table equals b.Table
 ```
 
+## Playing a game
+
+`SudokuGame` holds a game in progress. Create one from a generated puzzle:
+
+```csharp
+var puzzle = new TableService().StartGame(MatchLevelEnum.Medium);
+var game = new SudokuGame(puzzle);
+```
+
+Cells given by the puzzle are **fixed** and cannot be changed. All indexes are `0..80` (see the layout above), digits are `1..9`. Invalid arguments throw `ArgumentOutOfRangeException`; changing a fixed cell throws `InvalidOperationException`.
+
+| Feature | Members |
+|---|---|
+| Board | `Values` (0 = empty), `IsFixed(index)`, `PlaceDigit(index, digit)`, `ClearCell(index)` |
+| Rule conflicts | `HasConflict(index)`: the digit also appears in the cell's row, column or box (both cells report it) |
+| Finish | `IsSolved()` |
+| Notes (pencil marks) | `ToggleNote(index, digit)`, `HasNote(index, digit)`, `ClearNotes(index)`. Placing a digit clears that cell's notes |
+| Undo / redo | `Undo()`, `Redo()`, `CanUndo`, `CanRedo`. Keeps the last `SudokuGame.MaxHistory` (5) changes. Each change affects one cell, notes included |
+| Check | `Validate()` returns the indexes of wrong digits and counts one use in `ChecksUsed` |
+| Hint | `GetHint()` returns a `Hint(Index, Digit)` for the easiest empty cell and counts one use in `HintsUsed` |
+
+`HasConflict` and `Validate` are different: `HasConflict` only sees repeated digits, `Validate` compares with the solution and also finds wrong digits that break no rule yet. `ChecksUsed` and `HintsUsed` are never reduced by undo.
+
+```csharp
+game.PlaceDigit(0, 5);
+if (game.HasConflict(0)) { /* highlight in red */ }
+
+var wrong = game.Validate();   // indexes of wrong digits
+var hint = game.GetHint();     // null when the game is solved
+```
+
+### Saving and loading
+
+A game can be saved at any time. The undo/redo history is not saved: a restored game starts with an empty history.
+
+```csharp
+string json = game.ToJson();            // store it wherever the app wants
+var restored = SudokuGame.FromJson(json);
+```
+
+`ToSnapshot()` / `SudokuGame.FromSnapshot(snapshot)` do the same with a plain `GameSnapshot` object. Invalid or tampered data throws `InvalidDataException`. Where the text is stored (file, preferences) is up to the app.
+
 ## Roadmap
 
+- [ ] Rate difficulty by the solving techniques a puzzle needs (instead of only the number of empty cells)
 - [ ] Build the game board in `Sudoku.MAUI`

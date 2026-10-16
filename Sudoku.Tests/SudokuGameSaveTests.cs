@@ -229,4 +229,34 @@ public class SudokuGameSaveTests
     [Fact]
     public void FromSnapshot_RejectsANegativeNumberOfChecks() =>
         AssertRejected(s => s.ChecksUsed = -1);
+
+    [Fact]
+    public void Snapshot_KeepsTheNumberOfHints()
+    {
+        var (game, _, _) = PlayedGame();
+        game.GetHint();
+        game.GetHint();
+        game.GetHint();
+
+        var restored = SudokuGame.FromJson(game.ToJson());
+
+        Assert.Equal(3, restored.HintsUsed);
+    }
+
+    [Fact]
+    public void FromJson_LoadsASaveMadeWithoutTheHintCounter()
+    {
+        var (game, _, _) = PlayedGame();
+        var json = JsonNode.Parse(game.ToJson())!.AsObject();
+        json.Remove("HintsUsed");
+
+        var restored = SudokuGame.FromJson(json.ToJsonString());
+
+        Assert.Equal(0, restored.HintsUsed);
+        AssertSameState(game, restored);
+    }
+
+    [Fact]
+    public void FromSnapshot_RejectsANegativeNumberOfHints() =>
+        AssertRejected(s => s.HintsUsed = -1);
 }

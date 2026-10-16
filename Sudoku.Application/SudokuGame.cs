@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Numerics;
 using System.Text.Json;
 
 namespace Sudoku.Application;
@@ -124,6 +125,53 @@ public class SudokuGame
             .ToList();
     }
 
+    /// <summary>How many hints have been given. Undo does not reduce it.</summary>
+    public int HintsUsed { get; private set; }
+
+    /// <summary>
+    /// Suggests the next move: the empty cell with the fewest possible digits, together with its correct digit
+    /// (ties go to the lowest index). Digits the player entered that do not match the solution are ignored
+    /// when counting possibilities, and are never reported; use <see cref="Validate"/> for those.
+    /// If there is no empty cell left but the board is wrong, the first wrong cell is returned.
+    /// Returns null, without counting, when the game is already solved. Every hint returned counts as one use.
+    /// </summary>
+    public Hint? GetHint()
+    {
+        if (IsSolved())
+            return null;
+
+        // Only digits that are right are trusted; empty and wrong cells count as empty.
+        var trusted = Enumerable.Range(0, 81).Select(i => _values[i] == _solution[i] ? _values[i] : 0).ToArray();
+
+        var emptyCells = Enumerable.Range(0, 81).Where(i => _values[i] == 0).ToList();
+        int index = emptyCells.Count > 0
+            ? emptyCells.MinBy(i => CountCandidates(trusted, i))
+            : Enumerable.Range(0, 81).First(i => _values[i] != _solution[i]);
+
+        HintsUsed++;
+        return new Hint(index, _solution[index]);
+    }
+
+    // How many digits could still go in the cell, judging only by the other cells of its row, column and box.
+    private static int CountCandidates(int[] cells, int index)
+    {
+        int row = index / 9;
+        int col = index % 9;
+        int boxRow = row / 3 * 3;
+        int boxCol = col / 3 * 3;
+
+        int used = 0; // bit n set = digit n appears in a neighbouring cell
+        for (int i = 0; i < 9; i++)
+        {
+            used |= 1 << cells[row * 9 + i];
+            used |= 1 << cells[i * 9 + col];
+            used |= 1 << cells[(boxRow + i / 3) * 9 + boxCol + i % 3];
+        }
+
+        used &= ~1; // bit 0 stands for empty cells
+        return 9 - BitOperations.PopCount((uint)used);
+    }
+
     public bool IsSolved()
     {
         for (int i = 0; i < 81; i++)
@@ -236,6 +284,7 @@ public class SudokuGame
     public GameSnapshot ToSnapshot() => new GameSnapshot
     {
         ChecksUsed = ChecksUsed,
+        HintsUsed = HintsUsed,
         Values = _values.ToArray(),
         FixedCells = _fixedCells.ToArray(),
         Solution = _solution.ToArray(),
@@ -253,6 +302,7 @@ public class SudokuGame
 
         var game = new SudokuGame(snapshot.Values.ToArray(), snapshot.FixedCells.ToArray(), snapshot.Solution);
         game.ChecksUsed = snapshot.ChecksUsed;
+        game.HintsUsed = snapshot.HintsUsed;
         foreach (var (index, digits) in snapshot.Notes)
             game._notes[index] = digits.ToList();
         return game;
@@ -289,6 +339,8 @@ public class SudokuGame
             throw new InvalidDataException("The saved game must have 81 cells.");
         if (s.ChecksUsed < 0)
             throw new InvalidDataException("The number of checks cannot be negative.");
+        if (s.HintsUsed < 0)
+            throw new InvalidDataException("The number of hints cannot be negative.");
         if (s.Values.Any(v => v < 0 || v > 9))
             throw new InvalidDataException("Cell values must be between 0 and 9.");
         if (!IsCompleteGrid(s.Solution))

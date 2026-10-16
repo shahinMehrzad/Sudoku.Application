@@ -13,6 +13,9 @@ public class GameSnapshot
     /// <summary>How many times the player has checked their digits. Saves made without it load as 0.</summary>
     public int ChecksUsed { get; set; }
 
+    /// <summary>How many hints the player has used. Saves made without it load as 0.</summary>
+    public int HintsUsed { get; set; }
+
     /// <summary>Current digit of every cell (0 = empty), row by row.</summary>
     public int[] Values { get; set; } = [];
 

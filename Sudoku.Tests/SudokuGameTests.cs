@@ -739,4 +739,168 @@ public class SudokuGameTests
         game.Undo();
         Assert.False(game.CanUndo); // Validate added nothing to the history
     }
+
+    private const string KnownSolution =
+        "534678912672195348198342567859761423426853791713924856961537284287419635345286179";
+
+    // The known grid with the given cells emptied; every other cell is a fixed cell.
+    private static (SudokuGame Game, MainTable Table) GameFromKnownGrid(params int[] emptyCells)
+    {
+        var solution = KnownSolution.Select(c => c - '0').ToList();
+        var table = new MainTable();
+        table.Solution.AddRange(solution);
+        table.Table.AddRange(solution.Select((digit, i) => emptyCells.Contains(i) ? 0 : digit));
+        return (new SudokuGame(table), table);
+    }
+
+    [Fact]
+    public void GetHint_PointsToAnEmptyCellWithItsCorrectDigit()
+    {
+        var (game, table) = NewGame();
+
+        var hint = game.GetHint();
+
+        Assert.NotNull(hint);
+        Assert.Equal(0, game.Values[hint.Index]);
+        Assert.Equal(table.Solution[hint.Index], hint.Digit);
+    }
+
+    [Fact]
+    public void GetHint_PrefersTheCellWithTheFewestPossibleDigits()
+    {
+        // cell 0 still allows two digits while the others allow one, so the lowest index must not win by default
+        int[] empty = [0, 1, 2, 3, 9, 10, 11, 40, 41, 50, 80];
+        var (game, _) = GameFromKnownGrid(empty);
+        var counts = empty.ToDictionary(i => i, i => CandidatesOf(game, i));
+        Assert.True(counts.Values.Distinct().Count() > 1, "the test needs cells with different counts");
+
+        var hint = game.GetHint();
+
+        int expected = empty.OrderBy(i => counts[i]).ThenBy(i => i).First();
+        Assert.Equal(expected, hint!.Index);
+    }
+
+    // Independent count: digits missing from the cell's row, column and box (empty cells count as nothing).
+    private static int CandidatesOf(SudokuGame game, int index)
+    {
+        int row = index / 9, col = index % 9;
+        var seen = new HashSet<int>();
+        for (int i = 0; i < 9; i++)
+        {
+            seen.Add(game.Values[row * 9 + i]);
+            seen.Add(game.Values[i * 9 + col]);
+            seen.Add(game.Values[(row / 3 * 3 + i / 3) * 9 + col / 3 * 3 + i % 3]);
+        }
+        return Enumerable.Range(1, 9).Count(d => !seen.Contains(d));
+    }
+
+    [Fact]
+    public void GetHint_PicksTheOnlyPossibleDigitCell()
+    {
+        // cell 80 is the only gap in its row, column and box, so it has exactly one possible digit
+        var (game, table) = GameFromKnownGrid(80);
+
+        Assert.Equal(new Hint(80, table.Solution[80]), game.GetHint());
+    }
+
+    [Fact]
+    public void GetHint_BreaksTiesWithTheLowestIndex()
+    {
+        var (game, table) = GameFromKnownGrid(1, 0); // both have exactly one possible digit
+
+        Assert.Equal(new Hint(0, table.Solution[0]), game.GetHint());
+    }
+
+    [Fact]
+    public void GetHint_AlsoWorksWithPlayerDigitsOnTheBoard()
+    {
+        var (game, table) = GameFromKnownGrid(0, 1, 80);
+        game.PlaceDigit(0, table.Solution[0]);
+
+        // the filled cell is never suggested again; cells 1 and 80 tie, so the lower index wins
+        Assert.Equal(new Hint(1, table.Solution[1]), game.GetHint());
+    }
+
+    [Fact]
+    public void GetHint_IgnoresWrongDigitsAndPointsToAnEmptyCell()
+    {
+        var (game, table) = GameFromKnownGrid(0, 1, 80);
+        game.PlaceDigit(0, WrongDigitFor(table, 0));
+
+        var hint = game.GetHint();
+
+        Assert.NotNull(hint);
+        Assert.Equal(0, game.Values[hint.Index]);
+        Assert.Equal(table.Solution[hint.Index], hint.Digit);
+    }
+
+    [Fact]
+    public void GetHint_ReportsAWrongCellWhenTheBoardIsFullButWrong()
+    {
+        var (game, table) = GameFromKnownGrid(5, 70);
+        game.PlaceDigit(5, table.Solution[5]);
+        game.PlaceDigit(70, WrongDigitFor(table, 70));
+
+        Assert.Equal(new Hint(70, table.Solution[70]), game.GetHint());
+    }
+
+    [Fact]
+    public void GetHint_ReturnsNullWithoutCountingWhenTheGameIsSolved()
+    {
+        var (game, table) = NewGame();
+        for (int i = 0; i < 81; i++)
+            if (!game.IsFixed(i))
+                game.PlaceDigit(i, table.Solution[i]);
+
+        Assert.Null(game.GetHint());
+        Assert.Equal(0, game.HintsUsed);
+    }
+
+    [Fact]
+    public void HintsUsed_StartsAtZeroAndCountsEveryHint()
+    {
+        var (game, _) = NewGame();
+        Assert.Equal(0, game.HintsUsed);
+
+        game.GetHint();
+        game.GetHint();
+
+        Assert.Equal(2, game.HintsUsed);
+    }
+
+    [Fact]
+    public void HintsUsed_IsNotReducedByUndo()
+    {
+        var (game, _) = NewGame();
+        game.PlaceDigit(FirstIndex(game, isFixed: false), 1);
+        game.GetHint();
+
+        game.Undo();
+
+        Assert.Equal(1, game.HintsUsed);
+    }
+
+    [Fact]
+    public void GetHint_DoesNotChangeTheBoardOrTheHistory()
+    {
+        var (game, _) = NewGame();
+        var before = game.Values.ToList();
+
+        game.GetHint();
+
+        Assert.Equal(before, game.Values);
+        Assert.False(game.CanUndo);
+    }
+
+    [Fact]
+    public void GetHint_IsNotCountedAsACheck()
+    {
+        var (game, _) = NewGame();
+
+        game.GetHint();
+        game.Validate();
+
+        Assert.Equal(1, game.HintsUsed);
+        Assert.Equal(1, game.ChecksUsed);
+    }
 }

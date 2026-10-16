@@ -274,4 +274,156 @@ public class SudokuGameTests
 
         Assert.True(game.IsSolved());
     }
+
+    [Fact]
+    public void HasNote_IsFalseForACellWithoutNotes()
+    {
+        var (game, _) = NewGame();
+        int index = FirstIndex(game, isFixed: false);
+
+        for (int digit = 1; digit <= 9; digit++)
+            Assert.False(game.HasNote(index, digit));
+    }
+
+    [Fact]
+    public void ToggleNote_AddsTheNoteAndTogglingAgainRemovesIt()
+    {
+        var (game, _) = NewGame();
+        int index = FirstIndex(game, isFixed: false);
+
+        game.ToggleNote(index, 4);
+        Assert.True(game.HasNote(index, 4));
+
+        game.ToggleNote(index, 4);
+        Assert.False(game.HasNote(index, 4));
+    }
+
+    [Fact]
+    public void ToggleNote_KeepsDifferentDigitsIndependent()
+    {
+        var (game, _) = NewGame();
+        int index = FirstIndex(game, isFixed: false);
+
+        game.ToggleNote(index, 2);
+        game.ToggleNote(index, 7);
+        game.ToggleNote(index, 2);
+
+        Assert.False(game.HasNote(index, 2));
+        Assert.True(game.HasNote(index, 7));
+    }
+
+    [Fact]
+    public void ToggleNote_OnlyAffectsTheGivenCell()
+    {
+        var game = GameWithFixed();
+
+        game.ToggleNote(0, 5);
+
+        Assert.True(game.HasNote(0, 5));
+        Assert.False(game.HasNote(1, 5));
+    }
+
+    [Fact]
+    public void ToggleNote_ThrowsOnAFixedCell()
+    {
+        var (game, _) = NewGame();
+        int index = FirstIndex(game, isFixed: true);
+
+        Assert.Throws<InvalidOperationException>(() => game.ToggleNote(index, 1));
+    }
+
+    [Fact]
+    public void ToggleNote_ThrowsOnACellThatHasADigit()
+    {
+        var (game, _) = NewGame();
+        int index = FirstIndex(game, isFixed: false);
+        game.PlaceDigit(index, 3);
+
+        Assert.Throws<InvalidOperationException>(() => game.ToggleNote(index, 1));
+    }
+
+    [Fact]
+    public void HasNote_IsFalseInsteadOfThrowingForFixedAndFilledCells()
+    {
+        var (game, _) = NewGame();
+        int fixedIndex = FirstIndex(game, isFixed: true);
+        int filledIndex = FirstIndex(game, isFixed: false);
+        game.PlaceDigit(filledIndex, 3);
+
+        Assert.False(game.HasNote(fixedIndex, 1));
+        Assert.False(game.HasNote(filledIndex, 1));
+    }
+
+    [Fact]
+    public void PlaceDigit_ClearsTheNotesOfThatCellOnly()
+    {
+        var game = GameWithFixed();
+        game.ToggleNote(0, 1);
+        game.ToggleNote(0, 2);
+        game.ToggleNote(1, 1);
+
+        game.PlaceDigit(0, 9);
+        game.ClearCell(0);
+
+        Assert.False(game.HasNote(0, 1));
+        Assert.False(game.HasNote(0, 2));
+        Assert.True(game.HasNote(1, 1));
+    }
+
+    [Fact]
+    public void ClearNotes_RemovesAllNotesOfTheCell()
+    {
+        var game = GameWithFixed();
+        game.ToggleNote(0, 1);
+        game.ToggleNote(0, 9);
+        game.ToggleNote(1, 1);
+
+        game.ClearNotes(0);
+
+        Assert.False(game.HasNote(0, 1));
+        Assert.False(game.HasNote(0, 9));
+        Assert.True(game.HasNote(1, 1));
+    }
+
+    [Fact]
+    public void ClearNotes_DoesNothingOnACellWithoutNotes()
+    {
+        var game = GameWithFixed();
+
+        game.ClearNotes(0);
+
+        Assert.False(game.HasNote(0, 1));
+    }
+
+    [Fact]
+    public void ClearNotes_ThrowsOnAFixedCell()
+    {
+        var (game, _) = NewGame();
+        int index = FirstIndex(game, isFixed: true);
+
+        Assert.Throws<InvalidOperationException>(() => game.ClearNotes(index));
+    }
+
+    [Theory]
+    [InlineData(-1, 1)]
+    [InlineData(81, 1)]
+    [InlineData(0, 0)]
+    [InlineData(0, 10)]
+    public void Notes_RejectInvalidIndexOrDigit(int index, int digit)
+    {
+        var game = GameWithFixed();
+
+        Assert.ThrowsAny<ArgumentOutOfRangeException>(() => game.HasNote(index, digit));
+        Assert.ThrowsAny<ArgumentOutOfRangeException>(() => game.ToggleNote(index, digit));
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(81)]
+    public void ClearNotes_RejectsIndexesOutsideTheBoard(int index)
+    {
+        var game = GameWithFixed();
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => game.ClearNotes(index));
+    }
 }

@@ -426,4 +426,196 @@ public class SudokuGameTests
 
         Assert.Throws<ArgumentOutOfRangeException>(() => game.ClearNotes(index));
     }
+
+    [Fact]
+    public void NewGame_HasNothingToUndoOrRedo()
+    {
+        var game = GameWithFixed();
+
+        Assert.False(game.CanUndo);
+        Assert.False(game.CanRedo);
+        Assert.Throws<InvalidOperationException>(() => game.Undo());
+        Assert.Throws<InvalidOperationException>(() => game.Redo());
+    }
+
+    [Fact]
+    public void Undo_RevertsPlaceDigitAndRedoPlacesItAgain()
+    {
+        var game = GameWithFixed();
+        game.PlaceDigit(0, 5);
+
+        game.Undo();
+        Assert.Equal(0, game.Values[0]);
+        Assert.False(game.CanUndo);
+        Assert.True(game.CanRedo);
+
+        game.Redo();
+        Assert.Equal(5, game.Values[0]);
+        Assert.True(game.CanUndo);
+        Assert.False(game.CanRedo);
+    }
+
+    [Fact]
+    public void Undo_RevertsDigitAndNotesOfACellInOneStep()
+    {
+        var game = GameWithFixed();
+        game.ToggleNote(0, 1);
+        game.ToggleNote(0, 2);
+        game.PlaceDigit(0, 9); // also wipes the notes
+
+        game.Undo();
+
+        Assert.Equal(0, game.Values[0]);
+        Assert.True(game.HasNote(0, 1));
+        Assert.True(game.HasNote(0, 2));
+
+        game.Redo();
+
+        Assert.Equal(9, game.Values[0]);
+        Assert.False(game.HasNote(0, 1));
+        Assert.False(game.HasNote(0, 2));
+    }
+
+    [Fact]
+    public void Undo_RevertsReplacingADigit()
+    {
+        var game = GameWithFixed();
+        game.PlaceDigit(0, 3);
+        game.PlaceDigit(0, 4);
+
+        game.Undo();
+
+        Assert.Equal(3, game.Values[0]);
+    }
+
+    [Fact]
+    public void Undo_RevertsClearCell()
+    {
+        var game = GameWithFixed();
+        game.PlaceDigit(0, 7);
+        game.ClearCell(0);
+
+        game.Undo();
+
+        Assert.Equal(7, game.Values[0]);
+    }
+
+    [Fact]
+    public void Undo_RevertsToggleNote()
+    {
+        var game = GameWithFixed();
+        game.ToggleNote(0, 6);
+
+        game.Undo();
+        Assert.False(game.HasNote(0, 6));
+
+        game.Redo();
+        Assert.True(game.HasNote(0, 6));
+    }
+
+    [Fact]
+    public void Undo_RevertsClearNotes()
+    {
+        var game = GameWithFixed();
+        game.ToggleNote(0, 1);
+        game.ToggleNote(0, 8);
+        game.ClearNotes(0);
+
+        game.Undo();
+
+        Assert.True(game.HasNote(0, 1));
+        Assert.True(game.HasNote(0, 8));
+    }
+
+    [Fact]
+    public void Undo_GoesBackOneChangeAtATimeInReverseOrder()
+    {
+        var game = GameWithFixed();
+        game.PlaceDigit(0, 1);
+        game.PlaceDigit(1, 2);
+        game.PlaceDigit(2, 3);
+
+        game.Undo();
+        Assert.Equal(new[] { 1, 2, 0 }, game.Values.Take(3));
+
+        game.Undo();
+        Assert.Equal(new[] { 1, 0, 0 }, game.Values.Take(3));
+
+        game.Undo();
+        Assert.Equal(new[] { 0, 0, 0 }, game.Values.Take(3));
+    }
+
+    [Fact]
+    public void NewChangeAfterUndo_DiscardsTheRedoHistory()
+    {
+        var game = GameWithFixed();
+        game.PlaceDigit(0, 1);
+        game.Undo();
+        Assert.True(game.CanRedo);
+
+        game.PlaceDigit(1, 2);
+
+        Assert.False(game.CanRedo);
+    }
+
+    [Fact]
+    public void History_KeepsOnlyTheLastFiveChanges()
+    {
+        var game = GameWithFixed();
+        for (int i = 0; i < 7; i++)
+            game.PlaceDigit(i, 1);
+
+        for (int i = 0; i < SudokuGame.MaxHistory; i++)
+            game.Undo();
+
+        Assert.False(game.CanUndo);
+        Assert.Equal(new[] { 1, 1, 0, 0, 0, 0, 0 }, game.Values.Take(7)); // the two oldest stay
+    }
+
+    [Fact]
+    public void ChangesThatAlterNothing_AreNotRecorded()
+    {
+        var game = GameWithFixed();
+
+        game.ClearCell(0);          // already empty
+        game.ClearNotes(0);         // no notes
+        Assert.False(game.CanUndo);
+
+        game.PlaceDigit(1, 4);
+        game.Undo();
+        game.PlaceDigit(1, 4);
+        game.PlaceDigit(1, 4);      // same digit again
+        game.Undo();                // undoes the single real change
+
+        Assert.Equal(0, game.Values[1]);
+        Assert.False(game.CanUndo);
+    }
+
+    [Fact]
+    public void FailedChanges_AreNotRecorded()
+    {
+        var (game, _) = NewGame();
+        int fixedIndex = FirstIndex(game, isFixed: true);
+
+        Assert.Throws<InvalidOperationException>(() => game.PlaceDigit(fixedIndex, 1));
+        Assert.Throws<ArgumentOutOfRangeException>(() => game.PlaceDigit(0, 10));
+
+        Assert.False(game.CanUndo);
+    }
+
+    [Fact]
+    public void UndoAndRedo_AreNotRecordedAsChanges()
+    {
+        var game = GameWithFixed();
+        game.PlaceDigit(0, 1);
+
+        game.Undo();
+        game.Redo();
+        game.Undo();
+        game.Redo();
+
+        Assert.True(game.CanUndo);
+        game.Undo();
+        Assert.False(game.CanUndo);
+    }
 }

@@ -35,8 +35,11 @@ public class SudokuGame
         CheckDigit(digit);
         CheckEditable(index);
 
-        _values[index] = digit;
-        ClearNotes(index);
+        Apply(index, () =>
+        {
+            _values[index] = digit;
+            _notes.Remove(index);
+        });
     }
 
     public void ClearCell(int index)
@@ -44,7 +47,7 @@ public class SudokuGame
         CheckIndex(index);
         CheckEditable(index);
 
-        _values[index] = 0;
+        Apply(index, () => _values[index] = 0);
     }
 
     private void CheckEditable(int index)
@@ -124,17 +127,20 @@ public class SudokuGame
         CheckDigit(digit);
         CheckNotable(index);
 
-        _notes.TryGetValue(index, out var notes);
-        if (notes == null)
+        Apply(index, () =>
         {
-            notes = new List<int>();
-            _notes[index] = notes;
-        }
+            _notes.TryGetValue(index, out var notes);
+            if (notes == null)
+            {
+                notes = new List<int>();
+                _notes[index] = notes;
+            }
 
-        if (notes.Contains(digit))
-            notes.Remove(digit);
-        else
-            notes.Add(digit);
+            if (notes.Contains(digit))
+                notes.Remove(digit);
+            else
+                notes.Add(digit);
+        });
     }
 
     public void ClearNotes(int index)
@@ -142,8 +148,69 @@ public class SudokuGame
         CheckIndex(index);
         CheckEditable(index);
 
-        _notes.TryGetValue(index, out var notes);
-        if (notes != null)
-            notes.Clear();
+        Apply(index, () => _notes.Remove(index));
     }
+
+    /// <summary>The number of most recent changes that can be undone.</summary>
+    public const int MaxHistory = 5;
+
+    private readonly List<CellChange> _undo = new List<CellChange>();
+    private readonly Stack<CellChange> _redo = new Stack<CellChange>();
+
+    public bool CanUndo => _undo.Count > 0;
+
+    public bool CanRedo => _redo.Count > 0;
+
+    public void Undo()
+    {
+        if (!CanUndo)
+            throw new InvalidOperationException("There is nothing to undo.");
+
+        var change = _undo[^1];
+        _undo.RemoveAt(_undo.Count - 1);
+        Restore(change.Index, change.Before);
+        _redo.Push(change);
+    }
+
+    public void Redo()
+    {
+        if (!CanRedo)
+            throw new InvalidOperationException("There is nothing to redo.");
+
+        var change = _redo.Pop();
+        Restore(change.Index, change.After);
+        _undo.Add(change);
+    }
+
+    // Runs a change on one cell and records it in the history. Changes that alter nothing are not recorded.
+    private void Apply(int index, Action change)
+    {
+        var before = Capture(index);
+        change();
+        var after = Capture(index);
+
+        if (before.Value == after.Value && before.Notes.SequenceEqual(after.Notes))
+            return;
+
+        _undo.Add(new CellChange(index, before, after));
+        if (_undo.Count > MaxHistory)
+            _undo.RemoveAt(0);
+        _redo.Clear();
+    }
+
+    private CellState Capture(int index) =>
+        new CellState(_values[index], _notes.TryGetValue(index, out var notes) ? notes.Order().ToArray() : []);
+
+    private void Restore(int index, CellState state)
+    {
+        _values[index] = state.Value;
+        if (state.Notes.Length == 0)
+            _notes.Remove(index);
+        else
+            _notes[index] = state.Notes.ToList();
+    }
+
+    private record CellState(int Value, int[] Notes);
+
+    private record CellChange(int Index, CellState Before, CellState After);
 }

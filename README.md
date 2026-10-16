@@ -1,8 +1,8 @@
 # Sudoku.Application
 
-A Sudoku game built with .NET 10. The game logic lives in a UI-independent class library, so it can be reused by a console app today and by a .NET MAUI app on desktop and mobile.
+A Sudoku game built with .NET 10. The game logic lives in a UI-independent class library, so it can be used by a console app and by a Blazor WebAssembly app.
 
-> **Status:** early development. The game logic (generation, play, notes, undo/redo, save/load, check, hints) is complete and tested; the MAUI user interface is still the default project template.
+> **Status:** early development. The game logic (generation, play, notes, undo/redo, save/load, check, hints) is complete and tested; the Blazor user interface is still the default project template.
 
 ## Solution layout
 
@@ -10,17 +10,12 @@ A Sudoku game built with .NET 10. The game logic lives in a UI-independent class
 |---|---|
 | `Sudoku.Application` | Core library: puzzle generation, difficulty levels, and the state of a game in progress. |
 | `Sudoku.Console` | Minimal console app that generates and prints a puzzle. |
-| `Sudoku.MAUI` | .NET MAUI app (Android, iOS, Mac Catalyst, Windows). UI not implemented yet. |
+| `Sudoku.Web` | Blazor WebAssembly app. UI not implemented yet. |
 | `Sudoku.Tests` | xUnit tests for the core library. |
 
 ## Requirements
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download)
-- For `Sudoku.MAUI` only: the MAUI workload
-
-  ```
-  dotnet workload install maui
-  ```
 
 ## Getting started
 
@@ -30,6 +25,9 @@ dotnet test Sudoku.Tests
 
 # Generate and print a puzzle in the console
 dotnet run --project Sudoku.Console
+
+# Run the web app (the address is printed in the terminal)
+dotnet run --project Sudoku.Web
 ```
 
 ## How it works
@@ -114,4 +112,4 @@ var restored = SudokuGame.FromJson(json);
 ## Roadmap
 
 - [ ] Rate difficulty by the solving techniques a puzzle needs (instead of only the number of empty cells)
-- [ ] Build the game board in `Sudoku.MAUI`
+- [ ] Build the game board in `Sudoku.Web`

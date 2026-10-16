@@ -1,15 +1,15 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.9.34902.65
+# Visual Studio Version 18
+VisualStudioVersion = 18.11.12306.390 stable
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sudoku.Application", "Sudoku.Application\Sudoku.Application.csproj", "{52C41B0B-6359-4FFE-8062-A8C1F75F8FEB}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sudoku.Console", "Sudoku.Console\Sudoku.Console.csproj", "{A09D8D0C-3956-42CA-834A-97919EC283B5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sudoku.MAUI", "Sudoku.MAUI\Sudoku.MAUI.csproj", "{AFE92FC3-F1AF-4787-BB07-9AA6D8FA766E}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sudoku.Tests", "Sudoku.Tests\Sudoku.Tests.csproj", "{6D11CE8A-692A-4E8D-9262-41AE616928EC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sudoku.Web", "Sudoku.Web\Sudoku.Web.csproj", "{2271DD7D-4582-41A4-B534-8C6BAD670FD7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -45,20 +45,6 @@ Global
 		{A09D8D0C-3956-42CA-834A-97919EC283B5}.Release|x64.Build.0 = Release|Any CPU
 		{A09D8D0C-3956-42CA-834A-97919EC283B5}.Release|x86.ActiveCfg = Release|Any CPU
 		{A09D8D0C-3956-42CA-834A-97919EC283B5}.Release|x86.Build.0 = Release|Any CPU
-		{AFE92FC3-F1AF-4787-BB07-9AA6D8FA766E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{AFE92FC3-F1AF-4787-BB07-9AA6D8FA766E}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{AFE92FC3-F1AF-4787-BB07-9AA6D8FA766E}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
-		{AFE92FC3-F1AF-4787-BB07-9AA6D8FA766E}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{AFE92FC3-F1AF-4787-BB07-9AA6D8FA766E}.Debug|x64.Build.0 = Debug|Any CPU
-		{AFE92FC3-F1AF-4787-BB07-9AA6D8FA766E}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{AFE92FC3-F1AF-4787-BB07-9AA6D8FA766E}.Debug|x86.Build.0 = Debug|Any CPU
-		{AFE92FC3-F1AF-4787-BB07-9AA6D8FA766E}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{AFE92FC3-F1AF-4787-BB07-9AA6D8FA766E}.Release|Any CPU.Build.0 = Release|Any CPU
-		{AFE92FC3-F1AF-4787-BB07-9AA6D8FA766E}.Release|Any CPU.Deploy.0 = Release|Any CPU
-		{AFE92FC3-F1AF-4787-BB07-9AA6D8FA766E}.Release|x64.ActiveCfg = Release|Any CPU
-		{AFE92FC3-F1AF-4787-BB07-9AA6D8FA766E}.Release|x64.Build.0 = Release|Any CPU
-		{AFE92FC3-F1AF-4787-BB07-9AA6D8FA766E}.Release|x86.ActiveCfg = Release|Any CPU
-		{AFE92FC3-F1AF-4787-BB07-9AA6D8FA766E}.Release|x86.Build.0 = Release|Any CPU
 		{6D11CE8A-692A-4E8D-9262-41AE616928EC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{6D11CE8A-692A-4E8D-9262-41AE616928EC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6D11CE8A-692A-4E8D-9262-41AE616928EC}.Debug|x64.ActiveCfg = Debug|Any CPU
@@ -71,6 +57,18 @@ Global
 		{6D11CE8A-692A-4E8D-9262-41AE616928EC}.Release|x64.Build.0 = Release|Any CPU
 		{6D11CE8A-692A-4E8D-9262-41AE616928EC}.Release|x86.ActiveCfg = Release|Any CPU
 		{6D11CE8A-692A-4E8D-9262-41AE616928EC}.Release|x86.Build.0 = Release|Any CPU
+		{2271DD7D-4582-41A4-B534-8C6BAD670FD7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2271DD7D-4582-41A4-B534-8C6BAD670FD7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2271DD7D-4582-41A4-B534-8C6BAD670FD7}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{2271DD7D-4582-41A4-B534-8C6BAD670FD7}.Debug|x64.Build.0 = Debug|Any CPU
+		{2271DD7D-4582-41A4-B534-8C6BAD670FD7}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{2271DD7D-4582-41A4-B534-8C6BAD670FD7}.Debug|x86.Build.0 = Debug|Any CPU
+		{2271DD7D-4582-41A4-B534-8C6BAD670FD7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2271DD7D-4582-41A4-B534-8C6BAD670FD7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2271DD7D-4582-41A4-B534-8C6BAD670FD7}.Release|x64.ActiveCfg = Release|Any CPU
+		{2271DD7D-4582-41A4-B534-8C6BAD670FD7}.Release|x64.Build.0 = Release|Any CPU
+		{2271DD7D-4582-41A4-B534-8C6BAD670FD7}.Release|x86.ActiveCfg = Release|Any CPU
+		{2271DD7D-4582-41A4-B534-8C6BAD670FD7}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

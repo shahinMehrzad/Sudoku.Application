@@ -80,7 +80,7 @@ Cells given by the puzzle are **fixed** and cannot be changed. All indexes are `
 
 | Feature | Members |
 |---|---|
-| Board | `Values` (0 = empty), `IsFixed(index)`, `PlaceDigit(index, digit)`, `ClearCell(index)` |
+| Board | `Values` (0 = empty), `IsFixed(index)`, `PlaceDigit(index, digit)`, `ClearCell(index)`, `Reset()` (back to the puzzle as given; clears notes and undo/redo history, keeps `ChecksUsed` and `HintsUsed`) |
 | Rule conflicts | `HasConflict(index)`: the digit also appears in the cell's row, column or box (both cells report it) |
 | Finish | `IsSolved()` |
 | Notes (pencil marks) | `ToggleNote(index, digit)`, `HasNote(index, digit)`, `ClearNotes(index)`. Placing a digit clears that cell's notes |

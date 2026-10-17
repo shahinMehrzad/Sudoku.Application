@@ -221,6 +221,23 @@ public class SudokuGame
         Apply(index, () => _notes.Remove(index));
     }
 
+    /// <summary>
+    /// Takes the game back to the puzzle as it was given: the player's digits and notes are removed.
+    /// The undo/redo history is cleared; <see cref="ChecksUsed"/> and <see cref="HintsUsed"/> are kept.
+    /// </summary>
+    public void Reset()
+    {
+        for (int i = 0; i < 81; i++)
+        {
+            if (!_fixedCells[i])
+                _values[i] = 0;
+        }
+
+        _notes.Clear();
+        _undo.Clear();
+        _redo.Clear();
+    }
+
     /// <summary>The number of most recent changes that can be undone.</summary>
     public const int MaxHistory = 5;
 

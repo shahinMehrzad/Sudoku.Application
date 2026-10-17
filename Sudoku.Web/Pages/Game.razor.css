@@ -46,3 +46,18 @@
 .board-area:focus {
     outline: none;
 }
+
+/* a digit that repeats in its row, column or box (both cells are marked) */
+.board td.conflict {
+    color: #dc3545;
+}
+
+.solved {
+    color: #198754;
+    font-weight: bold;
+}
+
+/* the same digit as the selected cell, wherever it is on the board */
+.board td.same-digit {
+    background-color: #fff3cd;
+}

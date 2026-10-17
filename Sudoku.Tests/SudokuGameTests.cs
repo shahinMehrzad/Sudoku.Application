@@ -903,4 +903,100 @@ public class SudokuGameTests
         Assert.Equal(1, game.HintsUsed);
         Assert.Equal(1, game.ChecksUsed);
     }
+
+    [Fact]
+    public void Reset_RemovesEveryPlayerDigitAndKeepsThePuzzle()
+    {
+        var (game, table) = NewGame();
+        foreach (var i in Enumerable.Range(0, 81).Where(i => !game.IsFixed(i)).Take(10))
+            game.PlaceDigit(i, table.Solution[i]);
+
+        game.Reset();
+
+        Assert.Equal(table.Table, game.Values);
+    }
+
+    [Fact]
+    public void Reset_RemovesWrongDigitsAndNotesToo()
+    {
+        var game = GameWithFixed();
+        game.PlaceDigit(0, 5);
+        game.ToggleNote(1, 3);
+
+        game.Reset();
+
+        Assert.Equal(0, game.Values[0]);
+        Assert.False(game.HasNote(1, 3));
+    }
+
+    [Fact]
+    public void Reset_KeepsFixedCellsLocked()
+    {
+        var (game, _) = NewGame();
+        int fixedIndex = FirstIndex(game, isFixed: true);
+
+        game.Reset();
+
+        Assert.True(game.IsFixed(fixedIndex));
+        Assert.Throws<InvalidOperationException>(() => game.PlaceDigit(fixedIndex, 1));
+    }
+
+    [Fact]
+    public void Reset_ClearsTheUndoAndRedoHistory()
+    {
+        var game = GameWithFixed();
+        game.PlaceDigit(0, 1);
+        game.PlaceDigit(1, 2);
+        game.Undo();
+        Assert.True(game.CanUndo);
+        Assert.True(game.CanRedo);
+
+        game.Reset();
+
+        Assert.False(game.CanUndo);
+        Assert.False(game.CanRedo);
+    }
+
+    [Fact]
+    public void Reset_KeepsTheCheckAndHintCounters()
+    {
+        var (game, _) = NewGame();
+        game.Validate();
+        game.GetHint();
+        game.GetHint();
+
+        game.Reset();
+
+        Assert.Equal(1, game.ChecksUsed);
+        Assert.Equal(2, game.HintsUsed);
+    }
+
+    [Fact]
+    public void Reset_OnAnUntouchedGameChangesNothing()
+    {
+        var (game, table) = NewGame();
+
+        game.Reset();
+
+        Assert.Equal(table.Table, game.Values);
+        Assert.False(game.CanUndo);
+    }
+
+    [Fact]
+    public void Reset_UndoesASolvedGameAndItCanBePlayedAgain()
+    {
+        var (game, table) = NewGame();
+        for (int i = 0; i < 81; i++)
+            if (!game.IsFixed(i))
+                game.PlaceDigit(i, table.Solution[i]);
+        Assert.True(game.IsSolved());
+
+        game.Reset();
+        Assert.False(game.IsSolved());
+
+        for (int i = 0; i < 81; i++)
+            if (!game.IsFixed(i))
+                game.PlaceDigit(i, table.Solution[i]);
+        Assert.True(game.IsSolved());
+    }
 }

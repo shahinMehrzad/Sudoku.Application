@@ -6,6 +6,11 @@
 
 <h1>Sudoku</h1>
 
+@if (game?.IsSolved() == true)
+{
+    <p class="solved" role="status">Solved! Well done.</p>
+}
+
 @if (game is null)
 {
     <p>Loading...</p>
@@ -34,6 +39,7 @@ else
             <button class="btn btn-outline-primary" disabled="@(!CanEdit)" @onclick="() => PlaceDigit(digit)">@digit</button>
         }
         <button class="btn btn-outline-secondary" disabled="@(!CanEdit)" @onclick="ClearSelected">Clear</button>
+        <button class="btn btn-outline-danger" @onclick="ResetGame">Reset</button>
     </div>
     </div>
 }
@@ -44,6 +50,9 @@ else
 
     // Only a selected cell that is not part of the puzzle can be changed.
     private bool CanEdit => selected is int index && !game!.IsFixed(index);
+
+    // The digit in the selected cell (0 when nothing is selected or the cell is empty).
+    private int SelectedDigit => selected is int index ? game!.Values[index] : 0;
 
     protected override void OnInitialized()
     {
@@ -57,6 +66,10 @@ else
             classes.Add("fixed");
         if (index == selected)
             classes.Add("selected");
+        else if (SelectedDigit != 0 && game.Values[index] == SelectedDigit)
+            classes.Add("same-digit");
+        if (game.HasConflict(index))
+            classes.Add("conflict");
         return string.Join(" ", classes);
     }
 
@@ -104,6 +117,9 @@ else
         if (CanEdit)
             game!.PlaceDigit(selected!.Value, digit);
     }
+
+    // Back to the puzzle as it was given (same puzzle, not a new one).
+    private void ResetGame() => game!.Reset();
 
     private void ClearSelected()
     {

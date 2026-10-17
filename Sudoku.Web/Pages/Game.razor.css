@@ -41,3 +41,8 @@
     margin-top: 1rem;
     max-width: 24rem;
 }
+
+/* the selected cell already shows where the keyboard focus is */
+.board-area:focus {
+    outline: none;
+}

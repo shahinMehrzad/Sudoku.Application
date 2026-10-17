@@ -1,0 +1,43 @@
+.board {
+    border-collapse: collapse;
+    border: 3px solid #333;
+}
+
+.board td {
+    width: 2.5rem;
+    height: 2.5rem;
+    border: 1px solid #999;
+    text-align: center;
+    vertical-align: middle;
+    font-size: 1.4rem;
+}
+
+.board td.fixed {
+    font-weight: bold;
+    background-color: #eee;
+}
+
+/* thicker lines between the 3x3 boxes */
+.board td:nth-child(3n) {
+    border-right: 3px solid #333;
+}
+
+.board tr:nth-child(3n) td {
+    border-bottom: 3px solid #333;
+}
+
+.board td {
+    cursor: pointer;
+}
+
+.board td.selected {
+    background-color: #cfe2ff;
+}
+
+.pad {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 1rem;
+    max-width: 24rem;
+}

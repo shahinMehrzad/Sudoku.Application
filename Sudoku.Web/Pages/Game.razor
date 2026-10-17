@@ -1,0 +1,74 @@
+@page "/game"
+@using Sudoku.Application
+@inject TableService TableService
+
+<PageTitle>Sudoku</PageTitle>
+
+<h1>Sudoku</h1>
+
+@if (game is null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <table class="board">
+        @for (int row = 0; row < 9; row++)
+        {
+            <tr>
+                @for (int col = 0; col < 9; col++)
+                {
+                    int index = row * 9 + col;
+                    int value = game.Values[index];
+
+                    <td class="@CellClass(index)" @onclick="() => Select(index)">@(value == 0 ? "" : value.ToString())</td>
+                }
+            </tr>
+        }
+    </table>
+
+    <div class="pad">
+        @foreach (var digit in Enumerable.Range(1, 9))
+        {
+            <button class="btn btn-outline-primary" disabled="@(!CanEdit)" @onclick="() => PlaceDigit(digit)">@digit</button>
+        }
+        <button class="btn btn-outline-secondary" disabled="@(!CanEdit)" @onclick="ClearSelected">Clear</button>
+    </div>
+}
+
+@code {
+    private SudokuGame? game;
+    private int? selected;
+
+    // Only a selected cell that is not part of the puzzle can be changed.
+    private bool CanEdit => selected is int index && !game!.IsFixed(index);
+
+    protected override void OnInitialized()
+    {
+        game = new SudokuGame(TableService.StartGame(MatchLevelEnum.Medium));
+    }
+
+    private string CellClass(int index)
+    {
+        var classes = new List<string>();
+        if (game!.IsFixed(index))
+            classes.Add("fixed");
+        if (index == selected)
+            classes.Add("selected");
+        return string.Join(" ", classes);
+    }
+
+    private void Select(int index) => selected = index;
+
+    private void PlaceDigit(int digit)
+    {
+        if (CanEdit)
+            game!.PlaceDigit(selected!.Value, digit);
+    }
+
+    private void ClearSelected()
+    {
+        if (CanEdit)
+            game!.ClearCell(selected!.Value);
+    }
+}

@@ -25,6 +25,17 @@
     flex: 1;
 }
 
+.help-title {
+    margin: 0.6rem 0 0;
+    font-size: 1.1rem;
+}
+
+.stats {
+    margin: 0;
+    color: #555;
+    font-size: 0.9rem;
+}
+
 .board {
     border-collapse: collapse;
     border: 3px solid #333;
@@ -76,4 +87,14 @@
 /* the selected cell already shows where the keyboard focus is */
 .board-area:focus {
     outline: none;
+}
+
+/* a wrong digit found by Check */
+.board td.mistake {
+    box-shadow: inset 0 0 0 3px #dc3545;
+}
+
+/* the cell the hint points to */
+.board td.hint {
+    box-shadow: inset 0 0 0 3px #198754;
 }

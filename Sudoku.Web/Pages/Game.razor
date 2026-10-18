@@ -24,6 +24,21 @@
             <button class="btn btn-outline-secondary" disabled="@(!CanRedo)" @onclick="Redo" title="Redo (Ctrl+Y)">Redo</button>
         </div>
 
+        <h3 class="help-title">Help</h3>
+        <button class="btn btn-outline-primary" disabled="@(!CanAskForHelp)" @onclick="Check">Check</button>
+        <button class="btn btn-outline-primary" disabled="@(!CanAskForHelp || (HintActive && hintDigitShown))" @onclick="ShowHint">@(HintActive && !hintDigitShown ? "Show digit" : "Hint")</button>
+
+        @if (checkMessage is not null)
+        {
+            <p role="status">@checkMessage</p>
+        }
+        @if (HintActive)
+        {
+            <p role="status">@(hintDigitShown ? $"Put {hint!.Digit} in the highlighted cell." : "Look at the highlighted cell.")</p>
+        }
+
+        <p class="stats">Checks used: @(game?.ChecksUsed ?? 0)<br />Hints used: @(game?.HintsUsed ?? 0)</p>
+
         @if (isGenerating)
         {
             <p role="status">Generating a puzzle...</p>
@@ -69,6 +84,19 @@
     // Only a selected cell that is not part of the puzzle can be changed.
     private bool CanEdit => selected is int index && !game!.IsFixed(index);
 
+    // Cells found wrong by the last check, with the wrong digit they held. A mark is shown only while the cell still holds that digit.
+    private readonly Dictionary<int, int> marked = new();
+    private string? checkMessage;
+
+    // The hint being shown, and what its cell held at that time; the hint ends as soon as the cell changes.
+    private Hint? hint;
+    private int hintCellValue;
+    private bool hintDigitShown;
+
+    private bool HintActive => game is not null && hint is not null && game.Values[hint.Index] == hintCellValue;
+
+    private bool CanAskForHelp => game is not null && !isGenerating && !game.IsSolved();
+
     private bool CanUndo => game is not null && !isGenerating && game.CanUndo;
 
     private bool CanRedo => game is not null && !isGenerating && game.CanRedo;
@@ -89,7 +117,52 @@
 
         game = new SudokuGame(TableService.StartGame(level));
         selected = null;
+        ClearHelp();
         isGenerating = false;
+    }
+
+    private void ClearHelp()
+    {
+        marked.Clear();
+        checkMessage = null;
+        hint = null;
+        hintDigitShown = false;
+    }
+
+    // Validate counts as one check. The wrong digits are marked on the board.
+    private void Check()
+    {
+        var mistakes = game!.Validate();
+
+        marked.Clear();
+        foreach (var index in mistakes)
+            marked[index] = game.Values[index];
+
+        checkMessage = mistakes.Count switch
+        {
+            0 => "No wrong digits found.",
+            1 => "1 wrong digit marked.",
+            _ => $"{mistakes.Count} wrong digits marked.",
+        };
+    }
+
+    // The first click shows the cell and counts as one hint; the second click only reveals its digit.
+    private void ShowHint()
+    {
+        if (HintActive)
+        {
+            hintDigitShown = true;
+            return;
+        }
+
+        var next = game!.GetHint();
+        if (next is null)
+            return;
+
+        hint = next;
+        hintCellValue = game.Values[next.Index];
+        hintDigitShown = false;
+        selected = next.Index;
     }
 
     private string CellClass(int index)
@@ -103,6 +176,10 @@
             classes.Add("same-digit");
         if (game.HasConflict(index))
             classes.Add("conflict");
+        if (marked.TryGetValue(index, out var wrongDigit) && game.Values[index] == wrongDigit)
+            classes.Add("mistake");
+        if (HintActive && hint!.Index == index)
+            classes.Add("hint");
         return string.Join(" ", classes);
     }
 
@@ -159,28 +236,44 @@
 
     private void PlaceDigit(int digit)
     {
-        if (CanEdit)
-            game!.PlaceDigit(selected!.Value, digit);
+        if (!CanEdit)
+            return;
+
+        game!.PlaceDigit(selected!.Value, digit);
+        checkMessage = null;
     }
 
     private void Undo()
     {
-        if (CanUndo)
-            game!.Undo();
+        if (!CanUndo)
+            return;
+
+        game!.Undo();
+        checkMessage = null;
     }
 
     private void Redo()
     {
-        if (CanRedo)
-            game!.Redo();
+        if (!CanRedo)
+            return;
+
+        game!.Redo();
+        checkMessage = null;
     }
 
     // Back to the puzzle as it was given (same puzzle, not a new one).
-    private void ResetGame() => game!.Reset();
+    private void ResetGame()
+    {
+        game!.Reset();
+        ClearHelp();
+    }
 
     private void ClearSelected()
     {
-        if (CanEdit)
-            game!.ClearCell(selected!.Value);
+        if (!CanEdit)
+            return;
+
+        game!.ClearCell(selected!.Value);
+        checkMessage = null;
     }
 }

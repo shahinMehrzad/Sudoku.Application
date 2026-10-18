@@ -1,3 +1,30 @@
+.game {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 2rem;
+}
+
+/* left panel with the game settings */
+.settings {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    width: 14rem;
+    padding: 1rem;
+    background-color: #f7f7f7;
+    border-radius: 0.5rem;
+}
+
+.history {
+    display: flex;
+    gap: 0.6rem;
+}
+
+.history button {
+    flex: 1;
+}
+
 .board {
     border-collapse: collapse;
     border: 3px solid #333;
@@ -10,6 +37,7 @@
     text-align: center;
     vertical-align: middle;
     font-size: 1.4rem;
+    cursor: pointer;
 }
 
 .board td.fixed {
@@ -26,25 +54,13 @@
     border-bottom: 3px solid #333;
 }
 
-.board td {
-    cursor: pointer;
-}
-
 .board td.selected {
     background-color: #cfe2ff;
 }
 
-.pad {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-    margin-top: 1rem;
-    max-width: 24rem;
-}
-
-/* the selected cell already shows where the keyboard focus is */
-.board-area:focus {
-    outline: none;
+/* the same digit as the selected cell, wherever it is on the board */
+.board td.same-digit {
+    background-color: #fff3cd;
 }
 
 /* a digit that repeats in its row, column or box (both cells are marked) */
@@ -57,7 +73,7 @@
     font-weight: bold;
 }
 
-/* the same digit as the selected cell, wherever it is on the board */
-.board td.same-digit {
-    background-color: #fff3cd;
+/* the selected cell already shows where the keyboard focus is */
+.board-area:focus {
+    outline: none;
 }
